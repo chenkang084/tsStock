@@ -3,9 +3,9 @@
 import { App, View } from "../framework/framework";
 import { MarketController } from "./controllers/market_controller";
 import { SymbolController } from "./controllers/symbol_controller";
-import { LayoutView } from "./views/layout";
 
 var appSettings : IAppSettings = {
+  isDebug : true,
   defaultController : "market",
   defaultAction : "nasdaq",
   controllers : [

@@ -1,117 +1,135 @@
 /// <reference path="./interfaces"/>
 
 import { EventEmitter } from "./event_emitter";
+import { AppEvent } from "./app_event";
+
+function ViewSettings(templateUrl : string, container : string) {
+  return function(target : any) {
+    // save a reference to the original constructor
+    var original = target;
+
+    // a utility function to generate instances of a class
+    function construct(constructor, args) {
+      var c : any = function () {
+        return constructor.apply(this, args);
+      }
+      c.prototype = constructor.prototype;
+      var instance =  new c();
+      instance._container = container;
+      instance._templateUrl = templateUrl;
+      return instance;
+    }
+
+    // the new constructor behaviour
+    var f : any = function (...args) {
+      return construct(original, args);
+    }
+
+    // copy prototype so intanceof operator still works
+    f.prototype = original.prototype;
+
+    // return new constructor (will override original)
+    return f;
+  }
+}
 
 class View extends EventEmitter implements IView {
+
+  // the values of _container and _templateUrl must be set using the ViewSettings decorator
+  protected _container : string;
+  private _templateUrl : string;
+
+  private _templateDelegate : HandlebarsTemplateDelegate;
 
   constructor(metiator : IMediator) {
     super(metiator);
   }
 
-  private render() {
-    
-  }
-
+  // must be implemented by derived classes
   public initialize() {
-    throw new Error('Model.prototype.initialize() is abstract you must implement it!');
+    throw new Error('View.prototype.initialize() is abstract and must implemented.');
   }
 
+  // must be implemented by derived classes
   public dispose() {
-    throw new Error('Model.prototype.dispose() is abstract you must implement it!');
+    throw new Error('View.prototype.dispose() is abstract and must implemented.');
+  }
+
+  // must be implemented by derived classes
+  protected bindDomEvents(model : any) {
+    throw new Error('View.prototype.bindDomEvents() is abstract and must implemented.');
+  }
+
+  // must be implemented by derived classes
+  protected unbindDomEvents() {
+    throw new Error('View.prototype.unbindDomEvents() is abstract and must implemented.');
+  }
+
+  // asynchroniusly loads a template
+  private loadTemplateAsync() {
+    return Q.Promise((resolve : (r) => {}, reject : (e) => {}) => {
+      $.ajax({
+        method: "GET",
+        url: this._templateUrl,
+        dataType: "text",
+        success: (response) => {
+          resolve(response);
+        },
+        error : (...args : any[]) => {
+          reject(args);
+        }
+      });
+    });
+  }
+
+  // asynchroniusly compile a template
+  private compileTemplateAsync(source : string) {
+    return Q.Promise((resolve : (r) => {}, reject : (e) => {}) => {
+      try {
+        var template = Handlebars.compile(source);
+        resolve(template);
+      }
+      catch(e) {
+        reject(e);
+      }
+    });
+  }
+  // asynchroniusly loads and compile a template if not done already
+  private getTemplateAsync() {
+    return Q.Promise((resolve : (r) => {}, reject : (e) => {}) => {
+      if(this._templateDelegate === undefined || this._templateDelegate === null) {
+        this.loadTemplateAsync()
+            .then((source) => {
+              return this.compileTemplateAsync(source);
+            })
+            .then((templateDelegate) => {
+              this._templateDelegate = templateDelegate;
+              resolve(this._templateDelegate);
+            })
+            .catch((e) => { reject(e); });
+      }
+      else {
+        resolve(this._templateDelegate);
+      }
+    });
+  }
+
+  // asynchroniusly renders the view
+  protected renderAsync(model) {
+    return Q.Promise((resolve : (r) => {}, reject : (e) => {}) => {
+      this.getTemplateAsync()
+          .then((templateDelegate) => {
+            // generate html and append to the DOM
+            var html = this._templateDelegate(model);
+            $(this._container).html(html);
+
+            // pass model to resolve so it can be used by
+            // subviews and DOM event initializer
+            resolve(model);
+          })
+          .catch((e) => { reject(e); });
+    });
   }
 }
 
-export { View };
-
-/*
-define(['handlebars', 'jquery'], function (handlebars) {
-    "use strict";
-
-    var View = function (config) {
-        this.container = config.container;
-        this.templateUrl = config.templateUrl;
-        this.model = config.model;
-        this.parseArgs = config.parseArgs
-    };
-
-    View.prototype.executeTemplate = function (data, cb) {
-        var that = this;
-        if (that.templateUrl !== null) {
-            $.ajax({
-                url: that.templateUrl,
-                data : { bust : (new Date()).getTime() }, // disable cache
-                async: true,
-                dataType: "text",
-                success: function (template) {
-                    var compiledTemplate = handlebars.compile(template);
-                    var html = compiledTemplate(data);
-                    cb(html);
-                },
-                error: function (a, b, c) {
-                    console.log("AJAX ERROR: ", a, b, c);
-                    window.location.hash = "error/index";
-                }
-            });
-        }
-        else
-        {
-            cb();
-        }
-    };
-
-    View.prototype.loadModel = function (args, cb) {
-        var that = this;
-        if (that.model != null && args != null) {
-            that.model.get(args, function (data) {
-                that.generateHtml(data, cb);
-            });
-        }
-        else
-        {
-            that.generateHtml({}, cb);
-        }
-    };
-
-    View.prototype.generateHtml = function (data, cb) {
-        var that = this;
-
-        if (typeof that.templateUrl === "string")
-        {
-            that.executeTemplate(data, function (html) {
-                $(that.container).html(html);
-                setTimeout(function () {
-                    $(that.container).fadeIn();
-                    cb(data);
-                }, 500);
-            });
-        }
-        else
-        {
-            if (data.items === undefined) {
-                $(that.container).html(data.body);
-                setTimeout(function () {
-                    $(that.container).fadeIn();
-                    cb(data);
-                }, 500);
-            }
-            else
-            {
-                throw new Error("Invalid operation use a templates for collections");
-            }
-        }
-    };
-
-    View.prototype.render = function (args, cb) {
-        var that = this;
-        $(that.container).hide();
-        args = that.parseArgs(args);
-        that.loadModel(args, function (data) {
-            if (typeof cb === "function") {
-                cb(data);
-            }
-        });
-    };
-
-    return View;
-});
-*/
+export { View, ViewSettings };

@@ -14,7 +14,7 @@ class App {
 
   constructor(appSettings : IAppSettings) {
     this._controllers = appSettings.controllers;
-    this._mediator = new Mediator();
+    this._mediator = new Mediator(appSettings.isDebug || false);
     this._router = new Router(this._mediator, appSettings.defaultController, appSettings.defaultAction);
     this._dispatcher = new Dispatcher(this._mediator, this._controllers);
     this._onErrorHandler = appSettings.onErrorHandler;

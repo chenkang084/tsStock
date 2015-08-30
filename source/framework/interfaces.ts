@@ -6,6 +6,7 @@ interface IControllerDetails {
 }
 
 interface IAppSettings {
+  isDebug : boolean,
   defaultController : string;
   defaultAction : string;
   controllers : Array<IControllerDetails>;
@@ -15,7 +16,7 @@ interface IAppSettings {
 interface IAppEvent {
   topic : string;
   data : any;
-  handler: (e: any, data? : any) => void;
+  handler: (e: any, data : any) => void;
 }
 
 interface IMediator {

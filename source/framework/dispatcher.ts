@@ -18,7 +18,9 @@ class Dispatcher extends EventEmitter implements IDispatcher {
   // listen to app.dispatch events
   public initialize() {
     this.subscribeToEvents([
-      new AppEvent("app.dispatch", null, (e: any, data? : any) => { this.dispatch(data); })
+      new AppEvent("app.dispatch", null, (e: any, data? : any) => {
+        this.dispatch(data);
+      })
     ]);
   }
 
@@ -76,18 +78,21 @@ class Dispatcher extends EventEmitter implements IDispatcher {
       }
       // action is available
       else {
-
-        // dispose previous controller
-        if(this._currentController !== null && this._currentControllerName !== route.controllerName) {
-          this._currentController.dispose();
-          this._currentController = null;
+        if(this._currentController == null) {
+          // initialize controller
+          this._currentControllerName = route.controllerName;
+          this._currentController = controller;
+          this._currentController.initialize();
         }
-
-        // initialize new controller and set as current
-        this._currentControllerName = route.controllerName;
-        this._currentController = controller;
-        this._currentController.initialize();
-
+        else {
+          // dispose previous controller if not needed
+          if(this._currentControllerName !== route.controllerName) {
+            this._currentController.dispose();
+            this._currentControllerName = route.controllerName;
+            this._currentController = controller;
+            this._currentController.initialize();
+          }
+        }
         // pass flow from dispatcher to the controller
         this.triggerEvent(new AppEvent(
           `app.controller.${this._currentControllerName}.${route.actionName}`,

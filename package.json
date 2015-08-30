@@ -20,7 +20,9 @@
   },
   "homepage": "https://github.com/remojansen/TsStock",
   "dependencies": {
+    "animate.css": "^3.4.0",
     "bootstrap": "^3.3.5",
+    "datatables": "^1.10.8",
     "handlebars": "^3.0.3",
     "jquery": "^2.1.4",
     "q": "^1.4.1"

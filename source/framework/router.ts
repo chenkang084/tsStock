@@ -27,7 +27,7 @@ class Router extends EventEmitter implements IRouter {
 
       // used to trigger routing on app start
       new AppEvent("app.initialize", null, (e: any, data? : any) => {
-        this.onRouteChange(this.parseRoute(""));
+        this.onRouteChange(this.getRoute());
       }),
 
       // used to trigger URL changes from other components
@@ -54,8 +54,8 @@ class Router extends EventEmitter implements IRouter {
         hash = hash.substring(0, hash.length - 1);
     }
     comp = hash.replace("#", '').split('/');
-    controller = comp[0] || "home";
-    action = comp[1] || "index";
+    controller = comp[0] || this._defaultController;
+    action = comp[1] || this._defaultAction;
 
     args = [];
     for (i = 2; i < comp.length; i++) {

@@ -2,105 +2,86 @@
 
 import { EventEmitter } from "./event_emitter";
 
-class Model extends EventEmitter implements IModel {
-  request() {
+function ModelSettings(serviceUrl : string) {
+  return function(target : any) {
+    // save a reference to the original constructor
+    var original = target;
 
-  }
-  initialize() {
-    throw new Error('Model.prototype.initialize() is abstract you must implement it!');
-  }
-  dispose() {
-    throw new Error('Model.prototype.dispose() is abstract you must implement it!');
+    // a utility function to generate instances of a class
+    function construct(constructor, args) {
+      var c : any = function () {
+        return constructor.apply(this, args);
+      }
+      c.prototype = constructor.prototype;
+      var instance =  new c();
+      instance._serviceUrl = serviceUrl;
+      return instance;
+    }
+
+    // the new constructor behaviour
+    var f : any = function (...args) {
+      return construct(original, args);
+    }
+
+    // copy prototype so intanceof operator still works
+    f.prototype = original.prototype;
+
+    // return new constructor (will override original)
+    return f;
   }
 }
 
-export { Model };
+class Model extends EventEmitter implements IModel {
 
-/*
-    var Model = function (config) {
-        this.endpoint = config.endpoint;
-        this.crossDomain = config.crossDomain;
-        this.formatter = config.formatter;
-    };
+  // the values of _serviceUrl must be set using the ModelSettings decorator
+  private _serviceUrl : string;
 
-    Model.prototype.parseMarkdown = function (data) {
-        if (data.items !== undefined) {
-            for (var i = 0; i < data.items.length; i++) {
-                if (data.items[i].contentTypeStr === "markdown") {
-                    data.items[i].body = marked(data.items[i].body);
-                }
-            }
+  constructor(metiator : IMediator) {
+    super(metiator);
+  }
 
+  // must be implemented by derived classes
+  public initialize() {
+    throw new Error('Model.prototype.initialize() is abstract and must implemented.');
+  }
+
+  // must be implemented by derived classes
+  public dispose() {
+    throw new Error('Model.prototype.dispose() is abstract and must implemented.');
+  }
+
+  protected requestAsync(method : string, dataType : string, data) {
+    return Q.Promise((resolve : (r) => {}, reject : (e) => {}) => {
+      $.ajax({
+        method: method,
+        url: this._serviceUrl,
+        data : data || {},
+        dataType: dataType,
+        success: (response) => {
+          resolve(response);
+        },
+        error : (...args : any[]) => {
+          reject(args);
         }
-        else {
-            if (data.contentTypeStr === "markdown") {
-                data.body = marked(data.body);
-            }
-        }
-        return data;
-    };
+      });
+    });
+  }
 
-    Model.prototype.ajaxHelper = function (type, args, cb) {
+  protected getAsync(dataType : string, data : any) {
+    return this.requestAsync("GET", dataType, data);
+  }
 
-        var serializedPublication, that = this, ajaxOptions;
+  protected postAsync(dataType : string, data : any) {
+    return this.requestAsync("POST", dataType, data);
+  }
 
-        if (type !== "GET") {
-            serializedPublication = JSON.stringify(args);
-        }
-        else {
-            serializedPublication = args;
-        }
+  protected putAsync(dataType : string, data : any) {
+    return this.requestAsync("PUT", dataType, data);
+  }
 
-        jQuery.support.cors = true;
+  protected deleteAsync(dataType : string, data : any) {
+    return this.requestAsync("DELETE", dataType, data);
+  }
+}
 
-        ajaxOptions = {
-            type: type,
-            contentType: "application/json",
-            url: that.endpoint,
-            dataType: 'json',
-            data: serializedPublication,
-            success: function (response) {
-                response = that.parseMarkdown(response);
-                if (that.formatter != null) {
-                    response = that.formatter(response, args);
-                }
-                cb(response);
-            },
-            error: function (a, b, c) {
-                console.log(a, b, c);
-                window.location.hash = "error/index";
-            }
-        };
-
-        // override xhr for browser that use XDR
-        if ('XDomainRequest' in window && window.XDomainRequest !== null) {
-            // override default jQuery transport
-            jQuery.ajaxSettings.xhr = function () {
-                try { return new XDomainRequest(); }
-                catch (e) {
-                    console.log(e);
-                }
-            };
-            // also, override the support check
-            jQuery.support.cors = true;
-        }
-
-        $.ajax(ajaxOptions);
-    };
-
-    Model.prototype.get = function (data, cb) {
-        this.ajaxHelper("GET", data, cb);
-    };
-
-    Model.prototype.post = function (data, cb) {
-        this.ajaxHelper("POST", data, cb);
-    };
-
-    Model.prototype.put = function (data, cb) {
-        this.ajaxHelper("PUT", data, cb);
-    };
-
-    Model.prototype.remove = function (data, cb) {
-        this.ajaxHelper("DELETE", data, cb);
-    };
-    */
+export { Model, ModelSettings };
