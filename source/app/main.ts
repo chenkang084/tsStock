@@ -13,6 +13,7 @@ var appSettings : IAppSettings = {
     { controllerName : "symbol", controller : SymbolController }
   ],
   onErrorHandler : function(e : Object) {
+    alert("Sorry! there has been an error please check out the console for more info!");
     console.log(e.toString());
   }
 };

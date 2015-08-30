@@ -2,16 +2,22 @@
 
 import { Controller, AppEvent } from "../../framework/framework";
 import { QuoteModel } from "../models/quote_model";
+import { ChartModel } from "../models/chart_model";
 import { SymbolView } from "../views/symbol_view";
+import { ChartView } from "../views/chart_view";
 
 class SymbolController extends Controller implements IController {
   private _quoteModel : IModel;
+  private _chartModel : IModel;
   private _symbolView : IView;
+  private _chartView : IView;
 
   constructor(metiator : IMediator) {
     super(metiator);
     this._quoteModel = new QuoteModel(metiator);
+    this._chartModel = new ChartModel(metiator);
     this._symbolView = new SymbolView(metiator);
+    this._chartView = new ChartView(metiator);
   }
 
   // initialize views/ models and strat listening to controller actions
@@ -23,8 +29,10 @@ class SymbolController extends Controller implements IController {
     ]);
 
     // initialize view and models events
-    this._symbolView.initialize();
     this._quoteModel.initialize();
+    this._chartModel.initialize();
+    this._symbolView.initialize();
+    this._chartView.initialize();
   }
 
   // dispose views/models and stop listening to controller actions
@@ -36,10 +44,12 @@ class SymbolController extends Controller implements IController {
     // dispose views and model events
     this._symbolView.dispose();
     this._quoteModel.dispose();
+    this._chartView.dispose();
+    this._chartModel.dispose();
   }
 
   public quote(symbol : string) {
-    this._metiator.publish(new AppEvent("app.model.quote.change", symbol, null));
+    this.triggerEvent(new AppEvent("app.model.quote.change", symbol, null));
   }
 }
 
